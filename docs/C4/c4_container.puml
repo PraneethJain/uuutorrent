@@ -1,0 +1,41 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "End User", "College student/staff using the system.")
+Person_Ext(admin, "Administrator", "Manages the system and monitors health.")
+
+System_Ext(anilist, "Anilist API", "External service for watchlist data.", "GraphQL API")
+System_Ext(rssSources, "RSS Feed Sources", "External websites providing torrent RSS feeds.", "HTTP/XML Feeds")
+System_Ext(torrentPeers, "Torrent Peers/Trackers", "Distributed network entities for P2P file sharing.", "P2P Network")
+
+Container(containerTUI, "Terminal UI (TUI)", "Python, Textual", "Runs on User's machine. Provides user interaction.")
+
+System_Boundary(oci_instance, "Torrent Proxy System (on OCI Compute Instance)") {
+    Container(containerApi, "API Backend", "Python, FastAPI", "Handles API requests, business logic, auth, orchestration.")
+    ContainerDb(containerDB, "Database", "PostgreSQL", "Stores users, torrent metadata, feeds, watchlists.")
+    Container(containerTorrentClient, "Torrent Client", "qBittorrent Server Process", "Manages torrent downloads/uploads via P2P.")
+    Container(containerMonitoring, "Monitoring Suite", "Prometheus, Grafana, Exporters", "Collects metrics and provides dashboards.")
+}
+
+Rel(user, containerTUI, "Uses", "Local Terminal")
+Rel(containerTUI, containerApi, "Makes API Calls", "HTTPS/JSON")
+
+Rel(admin, containerMonitoring, "Views Dashboards", "HTTPS (Grafana UI)")
+Rel(containerApi, containerDB, "Reads/Writes State", "SQL")
+Rel(containerApi, containerTorrentClient, "Controls Torrents", "HTTP (qBittorrent Web API)")
+Rel(containerApi, containerMonitoring, "Exposes Metrics", "HTTP (/metrics)")
+Rel(containerMonitoring, containerDB, "Collects Metrics (via pgexporter)", "SQL")
+
+Rel(containerApi, anilist, "Syncs Watchlist Data", "GraphQL/HTTPS")
+Rel(containerApi, rssSources, "Fetches Feed Updates", "HTTP/HTTPS")
+Rel(containerTorrentClient, torrentPeers, "Performs P2P Transfer", "Torrent Protocol")
+
+Lay_D(user, containerTUI)
+Lay_D(containerTUI, containerApi)
+Lay_D(containerApi, containerDB)
+Lay_R(containerApi, containerTorrentClient)
+Lay_R(containerDB, containerMonitoring)
+Lay_R(containerMonitoring, admin)
+
+
+@enduml
