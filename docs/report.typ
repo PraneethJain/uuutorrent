@@ -23,7 +23,7 @@
     ], margin: (x: 1.5cm),
 )
 
-#outline()
+#outline(depth: 3, indent: auto)
 
 #pagebreak()
 
@@ -31,7 +31,7 @@
 
 == Requirements
 
-=== Functional Requirements (FR)
+=== Functional Requirements (FR)  
 
 - *FR1: Remote Torrent Download & Transfer:* Utilize an Oracle Cloud compute instance with qBittorrent for downloading torrents. Provide authenticated users a mechanism (via TUI) to initiate downloads and securely transfer completed files (e.g., via user-initiated SFTP/SCP) to local devices.
 
@@ -77,3 +77,136 @@ The following requirements have the most significant impact on the architectural
 - *NF7 (Resource Constraints):* A primary constraint influencing technology choices and scale.
 - *FR6 & NF9 (Monitoring):* Dictates the monitoring stack (Prometheus/Grafana) and its configuration.
 - *FR4 (Watchlist Integration):* Requires careful design of backend interaction with external APIs.
+
+== Subsystem Overview
+
+=== User Interface (TUI - Textual):
+
+==== Role
+The primary point of interaction for the end-user. It is a client application designed to run directly on the user's local machine or accessed via SSH, but operating independently from the backend services.
+
+==== Functionality
+
+- Presents views for displaying current torrent download status (name, size, progress, speed, status like downloading/seeding/paused/error), list of subscribed RSS feeds, and watchlist items.
+
+- Provides input mechanisms for users to:
+
+  - Add new torrents (via magnet link or potentially .torrent file upload handled via the API).
+
+  - Add/remove RSS feeds and configure their associated filters (e.g., keywords, regex).
+
+  - Add/remove shows from their personal watchlist.
+
+  - Trigger actions on existing torrents (pause, resume, delete).
+
+  - Initiate user authentication (login/logout).
+
+==== Interaction
+Communicates exclusively with the API Backend over the network via secure HTTPS requests, sending user commands and receiving data to display. It does not directly interact with qBittorrent, the database, or external APIs like Anilist.
+
+=== API Backend (FastAPI):
+
+==== Role
+The central coordinating service running on the OCI instance. It acts as the "brain" of the system, mediating all interactions between the TUI, the torrent client, the database, and external services.
+
+==== Functionality
+
+- Exposes a secure RESTful API (HTTPS/JSON) for the TUI client.
+
+- Handles user authentication (verifying credentials) and authorization (ensuring users only access their own resources) using techniques like JWT.
+
+- Manages user sessions and API tokens.
+
+- Receives requests from the TUI and translates them into actions:
+
+  - Instructing the qBittorrent service (via its Web API) to add, pause, resume, delete torrents, and fetch status updates.
+
+  - Storing and retrieving user data, feed subscriptions, filters, torrent metadata, and watchlist information from the PostgreSQL database.
+
+  - Periodically scheduling and executing RSS feed checks: fetching content, applying filters, identifying new torrents, and triggering downloads.
+
+  - Interacting with external Watchlist APIs (e.g., Anilist) to fetch user watchlist data, search for shows, and potentially identify new episodes.
+
+  - Correlating watchlist information with RSS feeds or other sources to automate downloads for new episodes.
+
+  - May provide administrative endpoints for user management (if required).
+
+- Exposes a `/metrics` endpoint for Prometheus to scrape performance and operational metrics.
+
+==== Interaction
+Listens for requests from the TUI; sends commands to qBittorrent Web API; executes queries against the PostgreSQL database; makes outgoing requests to external RSS feed URLs and Watchlist APIs (Anilist); allows Prometheus to scrape its metrics endpoint.
+
+=== Torrent Client Service (qBittorrent):
+
+==== Role
+The core download engine running as a separate process (qBittorrent server) on the OCI instance. It handles the complexities of the BitTorrent protocol.
+
+==== Functionality
+
+- Manages the entire lifecycle of torrent downloads: connecting to trackers and peers, downloading/uploading data pieces, verifying file integrity.
+
+- Handles seeding (uploading) after downloads complete, based on configured rules.
+
+- Parses `.torrent` files and magnet links.
+
+- Maintains the state of active and completed torrents.
+
+- Saves downloaded files to a designated location on the OCI instance's filesystem.
+
+- Provides a Web API that the API Backend uses to control its operations remotely.
+
+==== Interaction
+Communicates with external Torrent Trackers and Peers over the internet using the BitTorrent protocol (TCP/UDP). Exposes a Web API (typically HTTP) on a local port for the API Backend to interact with. Reads/writes files to the OCI instance's File Storage.
+
+=== Database (PostgreSQL)
+
+==== Role
+The persistent storage layer for the application's state, running on the OCI instance.
+
+==== Functionality
+
+- Stores user account information (usernames, securely hashed passwords, roles).
+
+- Maintains records of torrents being managed by the system (torrent hash, name, associated user, status flags, potentially download path).
+
+- Stores RSS feed subscriptions for each user, including the feed URL and associated filter rules (keywords, regex patterns).
+
+- Stores user watchlist information (e.g., user ID, show ID from external service like Anilist).
+
+- Potentially stores historical download statistics or logs (though this might be limited to avoid excessive storage use on free tier).
+
+==== Interaction
+Responds to SQL queries from the API Backend (CRUD operations - Create, Read, Update, Delete). Provides metrics data to the pgexporter for the Monitoring Service.
+
+=== Monitoring Service (Prometheus + Grafana + Exporters):
+
+==== Role
+Collects, stores, and visualizes system health and performance metrics, running on the OCI instance. Primarily used by the Administrator.
+
+==== Functionality
+
+- Prometheus: Periodically scrapes metrics data from configured targets (node_exporter for OS metrics, pgexporter for PostgreSQL stats, the API Backend's /metrics endpoint). Stores this time-series data.
+
+- Grafana: Queries Prometheus for data and presents it in user-friendly dashboards accessible via a web interface. Visualizes CPU/RAM/Disk/Network usage, database performance (connections, query times), torrent activity (if exposed via API metrics), API request rates/latency, etc.
+
+- Exporters (node_exporter, pgexporter): Small helper services that gather metrics from the host OS and PostgreSQL, respectively, and expose them in a format Prometheus understands.
+
+==== Interaction
+Prometheus makes outgoing HTTP requests to scrape targets. Grafana serves a web UI to the Administrator's browser and queries Prometheus internally. Exporters interact with the components they monitor (OS kernel interfaces, PostgreSQL).
+
+=== Watchlist API (External - e.g., Anilist):
+
+==== Role
+An external, third-party service that provides data about media (like anime or TV shows) and allows users to manage their personal watchlists.
+
+==== Functionality
+- Exposes an API (e.g., GraphQL for Anilist) allowing authorized applications (like our API Backend) to:
+
+- Search for media titles.
+
+- Fetch details about specific shows (episode count, release dates, etc.).
+
+- Retrieve the contents of a specific user's watchlist (requires user authentication/authorization with the external service, managed potentially via OAuth flow initiated by the user through the backend or stored API keys).
+
+==== Interaction
+Receives API requests (GraphQL/HTTPS) from the API Backend and returns data (JSON). It is external to the OCI instance and the core Torrent Proxy system.
