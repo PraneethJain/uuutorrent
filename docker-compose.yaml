@@ -26,8 +26,7 @@ services:
   
   pgexporter:
     build:
-      context: /home/bassam/Documents/os/pgexporter
-      dockerfile: ./contrib/docker/Dockerfile.alpine
+      context: ./pgexporter-build
     ports:
       - "5002:5002"
     volumes:
