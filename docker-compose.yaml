@@ -1,0 +1,38 @@
+services:
+  app:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://uuutorrent_user:uuutorrentpassword@postgres:5432/uuutorrent
+    depends_on:
+      - postgres
+  
+  postgres:
+    image: postgres:14
+    ports:
+      - "5433:5432" 
+    environment:
+      - POSTGRES_USER=uuutorrent_user
+      - POSTGRES_PASSWORD=uuutorrentpassword
+      - POSTGRES_DB=uuutorrent
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-pgexporter-user.sql:/docker-entrypoint-initdb.d/init-pgexporter-user.sql
+    command: >
+      -c listen_addresses='*'
+      -c log_destination='stderr'
+  
+  pgexporter:
+    build:
+      context: ./pgexporter-build
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./pgexporter.conf:/etc/pgexporter/pgexporter.conf
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
