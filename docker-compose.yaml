@@ -3,8 +3,11 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DATABASE_URL=postgresql+asyncpg://uuutorrent_user:uuutorrentpassword@postgres:5432/uuutorrent
+      - QB_API_URL=http://host.docker.internal:8080
     depends_on:
       - postgres
     networks:
