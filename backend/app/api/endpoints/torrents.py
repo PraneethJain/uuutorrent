@@ -47,7 +47,7 @@ async def add_torrent_magnet(
     """
     Add a new torrent via magnet link.
     """
-    torrent_hash = await qbittorrent_service.add_torrent(torrent_in.magnet_link)
+    torrent_hash = qbittorrent_service.add_torrent_source(torrent_in.magnet_link)
 
     if not torrent_hash:
         raise HTTPException(
