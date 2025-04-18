@@ -146,7 +146,7 @@ async def handle_download_request(
             # *** PUT TO SPECIFIC QUEUE ***
             await found_queue.put(found_event)
             # *** END PUT ***
-            log.info(f"--> Published TorrentFound event successfully.")
+            log.info("--> Published TorrentFound event successfully.")
             # --- END Processing Logic ---
 
             # Mark original DownloadEpisodeRequested event as done
@@ -156,7 +156,7 @@ async def handle_download_request(
             )
 
         except asyncio.CancelledError:
-            log.info(f"Worker 'handle_download_request' cancelled.")
+            log.info("Worker 'handle_download_request' cancelled.")
             break
         except Exception as e:
             log.exception(
@@ -245,10 +245,10 @@ async def handle_torrent_found(
                         )
                     else:
                         log.warning(
-                            f"--> DB: Torrent link for hash {final_hash} and user {event.user_id} already existed or failed silently."
+                            "--> DB: Torrent link for hash {final_hash} and user {event.user_id} already existed or failed silently."
                         )
-                log.info(f"--> DB Session closed.")
-            log.info(f"--> DB link step completed.")
+                log.info("--> DB Session closed.")
+            log.info("--> DB link step completed.")
             # --- END Processing Logic ---
 
             found_queue.task_done()
@@ -257,7 +257,7 @@ async def handle_torrent_found(
             )
 
         except asyncio.CancelledError:
-            log.info(f"Worker 'handle_torrent_found' cancelled.")
+            log.info("Worker 'handle_torrent_found' cancelled.")
             break
         except Exception as e:
             log.exception(

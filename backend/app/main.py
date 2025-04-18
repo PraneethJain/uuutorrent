@@ -9,7 +9,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.api import api_router
 from app.db.base import create_tables, AsyncSessionLocal  # Import AsyncSessionLocal
-from app.core.config import settings
 
 # Import services needed by workers
 from app.services.anilist_service import anilist_service
