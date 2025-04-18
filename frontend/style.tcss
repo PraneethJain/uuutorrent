@@ -1,0 +1,130 @@
+* {
+    scrollbar-size: 1 1;
+    scrollbar-gutter: stable;
+    /* border: white solid; */
+  }
+  
+  $scrollbar: rgb(255, 140, 35);
+  
+  Screen {
+    background: rgb(0, 0, 0);
+    scrollbar-color: $scrollbar;
+    scrollbar-color-active: $scrollbar;
+    scrollbar-color-hover: $scrollbar;
+  }
+  
+  Header,
+  Footer {
+    background: #101010;
+  }
+  
+  Cards {
+    min-height: 100%;
+  }
+  
+  Card {
+    text-align: center;
+    border: #97cafe round;
+    height: 3;
+    overflow: hidden hidden;
+    color: #edf5e1;
+  }
+  
+  Static {
+    text-align: center;
+  }
+  
+  Markdown {
+    margin: 1 0 0 0;
+    background: black;
+  }
+  
+  .active {
+    height: auto;
+    background: black;
+  }
+  
+  .highlight {
+    height: 5;
+    border: #5cdb95 solid;
+    padding: 1;
+  }
+  
+  .active .title {
+    color: #7abdff;
+  }
+  
+  .highlight.active {
+    height: auto;
+  }
+  
+  .highlight.active .title {
+    color: #6effaf;
+  }
+  
+  Button:focus {
+    text-style: bold;
+  }
+  
+  Progress {
+    margin: 1 0 0 0;
+    height: auto;
+  }
+  
+  Progress Button {
+    background: rgb(16, 16, 16);
+    border: none;
+  }
+  
+  Progress Button.-disabled {
+    opacity: 1;
+    text-opacity: 1;
+  }
+  
+  Progress Button:hover {
+    background: rgb(32, 32, 32);
+  }
+  
+  #plus.-disabled,
+  #minus.-disabled {
+    background: rgb(8, 8, 8);
+  }
+  
+  .buttons {
+    height: 5;
+    align: center top;
+  }
+  
+  .statebutton {
+    height: 0;
+  }
+  
+  .highlight .statebutton {
+    align: center middle;
+    height: 5;
+  }
+  
+  .buttons > Button {
+    height: 3;
+    max-width: 5;
+  }
+  
+  .statebutton > Button {
+    width: 15;
+    height: 3;
+  }
+  
+  #context-buttons {
+    height: 3;
+    width: 100%;
+    align: center middle;
+  }
+  
+  #context-buttons Button {
+    background: black;
+    border: none;
+  }
+  
+  #context-buttons Button:hover {
+    background: rgb(32, 32, 32);
+  }
