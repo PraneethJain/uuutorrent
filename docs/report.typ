@@ -451,39 +451,72 @@ The current state of the UUUTorrent project represents a working prototype demon
 
 The prototype successfully implements the following, showcasing the practical application of the proposed solution:
 
-1.  *User Authentication:* Users can sign up and log in (`/auth/signup`, `/auth/token`). The TUI uses JWTs for API calls (`api_client.py`). (Addresses FR2, NF4).
+1.  *User Authentication:* Users can sign up and log in (`/auth/signup`,
+    `/auth/token`). The TUI uses JWTs for API calls (`api_client.py`).
+    (Addresses FR2, NF4).
 2.  *Anilist Integration:* Users can link their Anilist account (`/auth/anilist/link`), view their 'CURRENT' watchlist (`/watchlist/`, `frontend/main.py:Cards`), and update episode progress (`/watchlist/progress`, `frontend/card.py:Progress`). (Addresses FR4, partial FR2, NF4).
-3.  *Direct-Call Watchlist Download:* This core workflow follows a direct request-response pattern:
-    *   User selects an unwatched episode in the TUI (`frontend/card.py`).
-    *   The TUI calls the backend endpoint (`/watchlist/download`).
-    *   The endpoint handler *synchronously orchestrates* the entire process within the request cycle:
-        *   Calls `anilist_service.get_media_details`.
-        *   Calls `torrent_orchestration_service.download_watchlist_episode`, which in turn:
-            *   Calls `nyaa_service.search`.
-            *   Selects the best torrent (`_select_best_torrent`).
-            *   Calls `qbittorrent_service.add_torrent_source` (using `run_in_executor` to handle the synchronous qBit library call without blocking the main async event loop).
-            *   Calls `torrent_repo.link_torrent` to update the database.
-    *   Once all steps are complete (or an error occurs), the endpoint returns the final result (success message with hash, or error) to the TUI. (Addresses FR1, FR3, FR4).
-4.  *Torrent Status Monitoring:* The TUI fetches and displays torrent status (`/torrents/`, `frontend/card.py`) as before. (Addresses FR5, NF6).
-5.  *Torrent Lifecycle Management:* Pausing, resuming, and deleting user-owned torrents via the TUI (`api_client.py` calling `/torrents/{hash}/...` endpoints) are functional. (Addresses FR5).
-6.  *API Backend Implementation:* A robust FastAPI backend provides the RESTful API, implements business logic in services (`services/`), interacts with the database via repositories (`db/repository/`), and handles external API communication asynchronously where possible (Anilist, Nyaa via `httpx`), using `run_in_executor` for the synchronous qBittorrent library. (Addresses NF8, supports all FRs).
-7.  *TUI Implementation:* A functional Textual TUI (`frontend/`) provides the user interface for the core workflows mentioned above. (Addresses FR7, NF6).
-8.  *Basic Monitoring Hooks:* The API backend exposes `/metrics` and `/health` endpoints for integration with a monitoring system. (Addresses NF9).
+3.  *Direct-Call Watchlist Download:* This core workflow follows a direct
+    request-response pattern:
+    -   User selects an unwatched episode in the TUI (`frontend/card.py`).
+    -   The TUI calls the backend endpoint (`/watchlist/download`).
+    -   The endpoint handler *synchronously orchestrates* the entire process
+        within the request cycle:
+        -   Calls `anilist_service.get_media_details`.
+        -   Calls `torrent_orchestration_service.download_watchlist_episode`,
+            which in turn:
+            -   Calls `nyaa_service.search`.
+            -   Selects the best torrent (`_select_best_torrent`).
+            -   Calls `qbittorrent_service.add_torrent_source` (using
+                `run_in_executor` to handle the synchronous qBit library call
+                without blocking the main async event loop).
+            -   Calls `torrent_repo.link_torrent` to update the database.
+    -   Once all steps are complete (or an error occurs), the endpoint returns
+        the final result (success message with hash, or error) to the TUI.
+        (Addresses FR1, FR3, FR4).
+4.  *Torrent Status Monitoring:* The TUI fetches and displays torrent status
+    (`/torrents/`, `frontend/card.py`) as before. (Addresses FR5, NF6).
+5.  *Torrent Lifecycle Management:* Pausing, resuming, and deleting user-owned
+    torrents via the TUI (`api_client.py` calling `/torrents/{hash}/...`
+    endpoints) are functional. (Addresses FR5).
+6.  *API Backend Implementation:* A robust FastAPI backend provides the RESTful
+    API, implements business logic in services (`services/`), interacts with
+    the database via repositories (`db/repository/`), and handles external API
+    communication asynchronously where possible (Anilist, Nyaa via `httpx`),
+    using `run_in_executor` for the synchronous qBittorrent library. (Addresses
+    NF8, supports all FRs).
+7.  *TUI Implementation:* A functional Textual TUI (`frontend/`) provides the
+    user interface for the core workflows mentioned above. (Addresses FR7,
+    NF6).
+8.  *Basic Monitoring Hooks:* The API backend exposes `/metrics` and `/health`
+    endpoints for integration with a monitoring system. (Addresses NF9).
 
 === Architectural Showcase:
 
-This prototype demonstrates key architectural decisions of the *implemented* direct-call approach:
+This prototype demonstrates key architectural decisions of the *implemented*
+direct-call approach:
 
--   *Client-Server Architecture:* Clear separation between the Textual TUI (client) and the FastAPI backend (server).
--   *Asynchronous Backend (with Synchronous Orchestration):* Use of `async`/`await` in FastAPI for handling requests and external IO (Anilist, Nyaa), but the core download workflow orchestration happens sequentially within the request-response cycle.
--   *Layered Backend:* Separation into API endpoints, services, repositories, and database models.
--   *Direct Service Interaction:* Services directly call other services or repositories needed to fulfill a request (e.g., endpoint calls orchestration service, which calls Nyaa service, qBit service, repo).
--   *External Service Integration:* Interaction with Anilist (GraphQL), Nyaa.si (RSS), and qBittorrent (Web API) via dedicated service modules.
--   *Database Interaction:* Use of PostgreSQL with SQLAlchemy and the Repository pattern.
--   *Authentication & Authorization:* Implementation of JWT-based authentication and resource ownership checks.
--   *Technology Stack:* Practical application of Python, FastAPI, Textual, PostgreSQL, Pydantic, SQLAlchemy, httpx, etc. (ADR-002).
+-   *Client-Server Architecture:* Clear separation between the Textual TUI
+    (client) and the FastAPI backend (server).
+-   *Asynchronous Backend (with Synchronous Orchestration):* Use of
+    `async`/`await` in FastAPI for handling requests and external IO (Anilist,
+    Nyaa), but the core download workflow orchestration happens sequentially
+    within the request-response cycle.
+-   *Layered Backend:* Separation into API endpoints, services, repositories,
+    and database models.
+-   *Direct Service Interaction:* Services directly call other services or
+    repositories needed to fulfill a request (e.g., endpoint calls
+    orchestration service, which calls Nyaa service, qBit service, repo).
+-   *External Service Integration:* Interaction with Anilist (GraphQL), Nyaa.si
+    (RSS), and qBittorrent (Web API) via dedicated service modules.
+-   *Database Interaction:* Use of PostgreSQL with SQLAlchemy and the
+    Repository pattern.
+-   *Authentication & Authorization:* Implementation of JWT-based
+    authentication and resource ownership checks.
+-   *Technology Stack:* Practical application of Python, FastAPI, Textual,
+    PostgreSQL, Pydantic, SQLAlchemy, httpx, etc. (ADR-002).
 
-The prototype effectively validates the feasibility of the core concepts using a direct-call monolithic backend structure.
+The prototype effectively validates the feasibility of the core concepts using
+a direct-call monolithic backend structure.
 
 === Implementation of NF3 (Reliability - Backup & Recovery)
 
@@ -506,14 +539,18 @@ This implementation ensures that the system can recover from database failures w
 
 == Architecture Analysis
 
-We analyze the implemented *direct-call, modular monolithic backend* architecture against key non-functional requirements and compare it conceptually to an alternative.
+We analyze the implemented *direct-call, modular monolithic backend* architecture against key non-functional requirements and compare it to an alternative.
 
-=== Comparison Architecture: Event-Driven (Conceptual Alternative)
+=== Comparison Architecture: Event-Driven
 
 For comparison, we consider an *Event-Driven Architecture (implemented within the Monolith)* as described previously. In this alternative:
-- The `/watchlist/download` endpoint would publish a `DownloadEpisodeRequested` event to an internal queue and immediately return `202 Accepted`.
-- Background worker tasks would asynchronously consume events to perform searching (`handle_download_request` worker) and torrent addition/DB linking (`handle_torrent_found` worker).
-- This contrasts with the implemented approach where all these steps happen sequentially *before* the API endpoint returns a response.
+- The `/watchlist/download` endpoint publishes a `DownloadEpisodeRequested`
+  event to an internal queue and immediately returns `202 Accepted`.
+- Background worker tasks asynchronously consume events to perform searching
+  (`handle_download_request` worker) and torrent addition/DB linking
+  (`handle_torrent_found` worker).
+- This contrasts with the implemented approach where all these steps happen
+  sequentially *before* the API endpoint returns a response.
 
 === Analysis of Implemented (Direct-Call) Architecture
 
@@ -554,7 +591,6 @@ For comparison, we consider an *Event-Driven Architecture (implemented within th
     - *Overall Impact:* Resource usage is tightly coupled to active user requests. The critical factors remain qBittorrent's activity and PostgreSQL load. ADR-001 (On-demand search) is still key to minimizing *idle* load. Adherence to NF7 under load depends on the efficiency of the sequential processing and the number of concurrent requests the OCI instance can handle without exceeding CPU/RAM limits.
 - *Trade-offs:* Simpler resource model (usage maps directly to requests). Less resilient to sudden, large bursts of requests compared to an event-driven approach with buffering, as it might lead to resource exhaustion or request timeouts if processing takes too long. No risk of unbounded queue memory growth.
 
-#pagebreak()
 - *Visualization for different architectures:*
     #figure(
       image("grafana/grafana_node_exporter_monolithic.png", width: 80%),
@@ -578,6 +614,122 @@ For comparison, we consider an *Event-Driven Architecture (implemented within th
 - *Consistency:* Direct-Call makes transactional consistency easier to achieve within a single request. Event-Driven requires careful design (e.g., idempotency, retries, monitoring) to handle partial failures across worker stages.
 
 #pagebreak()
+
+// =========================================
+// Task 5: Reflections on Project Process
+// =========================================
+= Reflections on Project Process
+
+This section reflects on the journey of developing the UUUTorrent project,
+covering successes, challenges, and lessons learned throughout the software
+engineering lifecycle.
+
+== What Went Well
+
+- *Technology Stack Integration:* The chosen stack (Python, FastAPI, Textual,
+  PostgreSQL, Docker) integrated relatively smoothly. FastAPI's async
+  capabilities were beneficial for handling external API calls, and Textual
+  provided a good framework for the TUI. Docker Compose significantly
+  simplified the setup and deployment of the backend services, especially the
+  database and monitoring components.
+- *Clear Core Requirements:* The initial project goal – linking Anilist to
+  remote qBittorrent via a TUI – provided a clear focus, helping to scope the
+  Minimum Viable Product (MVP).
+- *Modular Backend Design:* Adopting patterns like the Repository pattern and
+  Dependency Injection early on paid off, making the backend code easier to
+  manage, test (conceptually, though formal unit tests might be limited), and
+  reason about as different features were added.
+
+== Challenges Faced
+
+- *External API Reliability & Quirkiness:* Integrating with third-party APIs
+  (Anilist, Nyaa.si) presented challenges. Occasional downtime, rate limits,
+  and parsing inconsistencies (especially with RSS feeds like Nyaa.si) required
+  careful error handling and sometimes rework. The synchronous nature of the
+  `python-qbittorrentapi` library required using `run_in_executor`, adding a
+  slight complexity layer to the async backend.
+- *TUI State Management:* Managing state effectively within the Textual TUI,
+  especially reflecting asynchronous backend operations (like download progress
+  polling), proved more complex than initially anticipated. Ensuring the UI
+  updated correctly without blocking required careful use of timers and
+  callbacks.
+- *OCI Free Tier Limitations:* Working within the strict resource constraints
+  of the OCI Always Free tier influenced design decisions (ADR-001) and
+  required careful monitoring during testing to ensure the application didn't
+  exceed memory or CPU limits under load. Deployment required careful
+  configuration.
+- *Scope Creep Management:* Initially, ideas like built-in file
+  transfer or more advanced user management were considered but had to be
+  deferred to keep the project achievable within the timeframe and focused on
+  the core requirements.
+- *Testing Asynchronous Code:* While the design aimed for testability,
+  thoroughly testing asynchronous interactions, especially those involving
+  external services and timing (like the event-driven alternative), can be
+  challenging.
+
+== Design Decision Process
+
+Design decisions, documented in the ADRs, were generally made through team
+discussion. We typically started with the requirements (functional and
+non-functional, especially performance and resource constraints) and
+brainstormed potential solutions. Options were weighed based on:
+
+- Alignment with requirements (especially NFRs like NF7).
+- Technical feasibility and complexity.
+- Developer familiarity and available libraries/tools.
+- Maintainability and potential for future extension.
+
+ADRs were drafted to capture the outcome and rationale, ensuring alignment
+within the team. For instance, the decision for on-demand search (ADR-001) was
+heavily driven by the need to conserve resources (NF7) despite the potential
+latency impact (NF1 trade-off).
+
+== Changes from Initial Plan
+
+- *Initial Idea vs. Final Implementation:* The initial concept involved a more
+  sophisticated background RSS processing engine, which was simplified to the
+  on-demand search (ADR-001) due to complexity and resource concerns.
+- *Feature Prioritization:* Some nice-to-have features, like direct .torrent
+  file uploads, advanced search filtering in TUI, were de-prioritized during
+  development to ensure the core watchlist-to-download workflow was robustly
+  implemented.
+
+== Lessons Learned
+
+- *Importance of NFRs:* Non-functional requirements, particularly resource
+  constraints (NF7) and external dependencies (NF10), significantly shaped the
+  architecture (driving ADR-001). Ignoring NFRs early can lead to major rework
+  later.
+- *Value of Modularity:* Even within a monolith, structuring the code logically
+  (services, repositories) makes development and debugging much more manageable
+  (NF8).
+- *Asynchronous Programming Complexity:* While powerful for I/O-bound tasks,
+  `asyncio` requires careful handling of tasks, error propagation, and
+  potential race conditions (as seen when initially debugging the event-driven
+  alternative). Bridging sync/async code (like with qBittorrent) needs specific
+  patterns (`run_in_executor`).
+- *External API Integration Risks:* Relying on external services introduces
+  dependencies that are outside the team's control. Robust error handling,
+  timeouts, and potentially fallback mechanisms are crucial.
+- *Iterative Development:* Starting with a core workflow and iteratively adding
+  features or refining components proved effective. Trying to build everything
+  perfectly at once can be overwhelming.
+
+== What We Would Do Differently
+
+- *More Robust Error Handling:* Implement more specific error handling and user
+  feedback mechanisms, especially for failures during the multi-step download
+  process (e.g., informing the TUI if Nyaa search fails vs. qBit add fails).
+  Consider adding failure events in the event-driven alternative.
+- *Formalized Testing:* Introduce more automated testing earlier in the
+  process, particularly integration tests for API endpoints and potentially
+  unit tests for critical service logic, to catch regressions.
+- *Configuration Management:* Improve configuration handling, perhaps using a
+  more structured approach than just `.env` files, especially for
+  deployment-specific settings.
+- *Security Enhancements:* Consider encrypting the stored Anilist token in the
+  database rather than storing it plain-text. Implement refresh token logic for
+  JWTs to avoid frequent re-logins.
 
 // =========================================
 // Submission Guidelines
