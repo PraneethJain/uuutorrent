@@ -126,15 +126,20 @@ The persistent storage layer running on the OCI instance (external process). Sto
 ==== Interaction
 - Responds to asynchronous SQL queries from the API Backend (`db/repository/` via SQLAlchemy).
 - Scraped for metrics by pgexporter (external monitoring setup).
+- Periodic automated backups via pg-backup service (cron-based) to satisfy NF3 (Reliability).
 
 === Monitoring Service (Prometheus + Grafana + Exporters):
 
 ==== Role & Functionality
-The operational monitoring stack running on the OCI instance (external processes). Prometheus scrapes metrics (OS via node_exporter, DB via pgexporter, API Backend `/metrics`, potentially qBittorrent via an exporter) from configured targets; Grafana provides web-based dashboards for Admins to visualize system health and performance (FR6).
+The operational monitoring stack running on the OCI instance (external processes). Prometheus scrapes metrics from multiple sources: system metrics (CPU, memory, disk, network) via node_exporter, database performance metrics via pgexporter, and application metrics via the API Backend's `/metrics` endpoint. Grafana provides web-based dashboards for administrators to visualize system health, resource usage, database performance, and application behavior in real-time (FR6).
 
 ==== Interaction
-- Prometheus scrapes targets (API Backend `/metrics`, node_exporter, pgexporter).
-- Grafana queries Prometheus and serves a web UI to administrators.
+- Prometheus scrapes targets at configured intervals:
+  - System metrics via node_exporter (CPU, memory, disk, network utilization)
+  - Database metrics via pgexporter (query performance, connections, table statistics)
+  - API Backend metrics via the `/metrics` endpoint
+- Grafana queries Prometheus and renders customized dashboards for administrators
+- All components run as Docker containers on the OCI instance
 
 === Watchlist API (External - e.g., Anilist):
 
@@ -239,9 +244,17 @@ Following the IEEE 42010 standard, we identify stakeholders, their concerns, and
   )
 
 - *Operational Viewpoint:* Describes how the system is operated, monitored, and maintained. Addresses C7, C10, C11, C12, NF3, NF9.
-  - *Views:* Monitoring Dashboard Description (Grafana - what metrics are key?), Backup/Recovery Procedure Description (external script/service), User Management (currently just signup).
-  // Add figures here if diagrams for these views are created later
+  - *Views:* Monitoring Dashboard Description (Grafana dashboards for node_exporter and pgexporter metrics), Backup/Recovery Procedure Description (pg-backup container with cron job for daily PostgreSQL dumps), User Management (currently just signup).
+  
+  #figure(
+    image("grafana/grafana_node_exporter.png", width: 100%),
+    caption: [Operational View - Grafana Dashboard showing system metrics from node_exporter]
+  )
 
+  #figure(
+    image("grafana/grafana_pgexporter.png", width: 100%),
+    caption: [Operational View - Grafana Dashboard showing PostgreSQL metrics from pgexporter]
+  )
 
 - *User Experience (UX) Viewpoint:* Describes the user's interaction with the system via the TUI. Addresses C1, C4, C6, NF6.
   - *Views:* TUI Screenshots (`frontend/card.py` structure implies card-based layout), User Interaction Flow Descriptions (Login -> View Watchlist -> Select -> Download Trigger).
@@ -330,7 +343,12 @@ The following figures illustrate the system architecture using the C4 model, pro
   - *ELK Stack (Elasticsearch, Logstash, Kibana):* Primarily for logs, can be resource-heavy.
   - *Datadog/New Relic:* SaaS, powerful but likely exceed free tier budget/limits.
   - *Netdata:* Real-time focus, potentially higher overhead for historical data/complex queries.
-- *Outcome:* Chose Prometheus + Grafana + relevant exporters (node_exporter for OS, pgexporter for DB). FastAPI backend instruments via `prometheus-fastapi-instrumentator` to expose a `/metrics` endpoint (see `main.py`). Setup of Prometheus/Grafana/exporters is external deployment task.
+- *Outcome:* Chose Prometheus + Grafana + relevant exporters. Implemented with:
+  - node_exporter for OS metrics (CPU, RAM, disk, network)
+  - pgexporter for PostgreSQL database metrics
+  - pg-backup service with cron scheduling for implementing backup requirement (NF3)
+  - FastAPI backend instrumentation via `prometheus-fastapi-instrumentator` to expose a `/metrics` endpoint
+  - Containerized deployment of the entire monitoring stack via Docker Compose
 - *Consequences:*
   - *(+)* Provides powerful, standard monitoring and alerting capabilities. Aligns with cloud-native practices. Relatively low overhead for basic metrics.
   - *(-)* Adds components to manage/configure during deployment. Requires application instrumentation (`/metrics` endpoint). Grafana dashboard creation requires effort.
@@ -468,6 +486,25 @@ This prototype demonstrates key architectural decisions of the *implemented* dir
 -   *Technology Stack:* Practical application of Python, FastAPI, Textual, PostgreSQL, Pydantic, SQLAlchemy, httpx, etc. (ADR-002).
 
 The prototype effectively validates the feasibility of the core concepts using a direct-call monolithic backend structure.
+
+=== Implementation of NF3 (Reliability - Backup & Recovery)
+
+To satisfy the NF3 requirement for automated daily database backups with an RPO of 24 hours and RTO of 1 hour, we've implemented:
+
+1. *pg-backup Container*: A dedicated Docker container that:
+   - Runs a cron job scheduled for daily execution
+   - Uses `pg_dump` to create a complete backup of the PostgreSQL database
+   - Stores backups in a persistent Docker volume (`pg_backups`)
+   - Maintains backup history with timestamps
+   - Configured with proper database credentials via environment variables
+
+2. *Recovery Process*:
+   - In case of database failure, the operations team can:
+   - Access the backup files in the `pg_backups` volume
+   - Use `pg_restore` to recreate the database from the most recent backup
+   - The containerized approach ensures backups are isolated from application issues
+
+This implementation ensures that the system can recover from database failures within the specified RTO of 1 hour, with a maximum data loss of 24 hours (RPO).
 
 == Architecture Analysis
 
