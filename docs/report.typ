@@ -199,16 +199,83 @@ Following the IEEE 42010 standard, we identify stakeholders, their concerns, and
 
 - *Logical Viewpoint:* Describes the functional decomposition of the system, components (FastAPI services, repositories, Textual widgets), and their interactions. Addresses C1, C4, C5, C13, C15, C16.
   - *Views:* Component Diagram (conceptual: TUI, API Backend, DB, qBit, Ext. Services), Sequence Diagrams (e.g., Watchlist Download Flow, User Login Flow), Subsystem Description (Task 1). Code structure (`backend/app/`, `frontend/`).
+
+  #rotate(270deg, reflow: true)[#figure(
+    image("out/logicalViewComponentDiag/Logical View - Component Diagram.png", width: 100%),
+    caption: [Logical View - Conceptual Component Diagram]
+  )]
+
+  #rotate(270deg, reflow: true)[#figure(
+    image("out/logicalViewSequenceDiagramWL/Logical View - Sequence Diagram - Watchlist Download.png", width: 100%),
+    caption: [Logical View - Sequence Diagram: Watchlist Download Flow]
+  )]
+
+  #rotate(270deg, reflow: true)[#figure(
+    image("out/logicalView SequenceDiagram_UL/Logical View - Sequence Diagram - User Login.png", width: 100%),
+    caption: [Logical View - Sequence Diagram: User Login Flow]
+  )]
+
+
 - *Deployment Viewpoint:* Describes the physical environment (OCI instance), mapping of software components (Python processes, DB server, qBit process, Monitor processes) to hardware/infrastructure, and network interactions. Addresses C7, C8, C11, C18.
   - *Views:* Deployment Diagram (showing OCI instance, containers/processes for API, DB, qBit, Monitor), Network Diagram (ports: e.g., 8000 for API, 5432 for DB, qBit WebUI port, Prometheus/Grafana ports).
+
+  #figure(
+    image("out/DeploymentDiagram/deployment.png", width: 100%),
+    caption: [Deployment View - Deployment Diagram (OCI Instance with Docker Containers)]
+  )
+
+  #figure(
+    image("out/NetworkDiagram/Deployment View - Network Diagram.png", width: 120%),
+    caption: [Deployment View - Network Diagram (Key Components and Ports)]
+  )
+
+
 - *Security Viewpoint:* Describes how security requirements are met, including authentication (JWT, password hashing), authorization (dependency checks), data protection (token storage), and external service integration security (Anilist token handling). Addresses C3, C9, NF4, NF5.
   - *Views:* Authentication Flow Diagram (Login -> JWT -> API Call), Access Control Description (User vs Admin roles, torrent ownership), Data Security Description (bcrypt for passwords, direct storage of Anilist token).
+
+  #figure(
+    image("out/AuthenticationFlowDiagram/Security View - Authentication Flow Diagram.png", width: 120%),
+    caption: [Security View - Authentication Flow Diagram (Login and Protected Route Access)]
+  )
+
 - *Operational Viewpoint:* Describes how the system is operated, monitored, and maintained. Addresses C7, C10, C11, C12, NF3, NF9.
   - *Views:* Monitoring Dashboard Description (Grafana - what metrics are key?), Backup/Recovery Procedure Description (external script/service), User Management (currently just signup).
+  // Add figures here if diagrams for these views are created later
+
+
 - *User Experience (UX) Viewpoint:* Describes the user's interaction with the system via the TUI. Addresses C1, C4, C6, NF6.
   - *Views:* TUI Screenshots (`frontend/card.py` structure implies card-based layout), User Interaction Flow Descriptions (Login -> View Watchlist -> Select -> Download Trigger).
+
+  #figure(
+    image("out/InteractionFlow/User Experience View - Interaction Flow.png", width: 100%),
+    caption: [User Experience View - User Interaction Flow (Watchlist Download)]
+  )
+
+
 - *Development Viewpoint:* Describes aspects relevant to the development process, including code structure and patterns. Addresses C13, C14, C15, NF8.
   - *Views:* Code Structure Overview (`backend/app`, `frontend`), Description of Implementation Patterns (Task 3 - Repository, DI, etc.).
+
+  #rotate(270deg, reflow: true)[#figure(
+    image("out/codeStructure/Development Viewpoint - Code Structure and Patterns.png", width: 100%),
+    caption: [Development Viewpoint - Code Structure Overview and Implementation Patterns]
+  )]
+
+The following figures illustrate the system architecture using the C4 model, progressing from System Context to Containers and Components.
+
+  #figure(
+    image("out/system/C4_Context.png", width: 120%),
+    caption: [C4 Model - Level 1: System Context Diagram]
+  )
+
+  #figure(
+    image("out/container/C4_Container.png", width: 120%),
+    caption: [C4 Model - Level 2: Container Diagram]
+  )
+
+  #figure(
+    image("out/component/C4_Component.png", width: 120%),
+    caption: [C4 Model - Level 3: Component Diagram (API Backend)]
+  )
 
 *(Mapping Concerns to Viewpoints/Views is implicit in the descriptions above)*
 
