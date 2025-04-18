@@ -290,8 +290,6 @@ The following figures illustrate the system architecture using the C4 model, pro
     caption: [C4 Model - Level 3: Component Diagram (API Backend)]
   )
 
-*(Mapping Concerns to Viewpoints/Views is implicit in the descriptions above)*
-
 == Major Design Decisions (ADRs)
 
 === ADR-001: On-Demand RSS Search for Watchlist Downloads
