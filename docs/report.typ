@@ -3,7 +3,7 @@
 
 #align(center, text(size: 9mm, [Software Engineering Project 3]))
 #align(center, text(size: 1cm, [UUUTorrent]))
-#figure(image("logo.png", width: 50%),) // Assuming logo.png exists
+#figure(image("logo.png", width: 50%),)
 #align(center, text(size: 0.8cm, [Technical Report]))
 #line(start: (-10%, 0%), end: (110%, 0%))
 #align(center, text(size: 9mm, [BEST SE TEAM EVER \ (UNNAMED UNARMED UNTAMED)]))
