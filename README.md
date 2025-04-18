@@ -74,6 +74,8 @@ the IP/Port accessible to the backend, plus the Web UI username and password.
 - Remember that downloaded files reside on your server. Transfer them locally
 using your preferred method (scp, sftp, rsync, Syncthing, etc.).
 
+- Demo video: https://youtu.be/qxLmZVKsfRs
+
 ## Disclaimer
 
 This is a personal project developed for a specific workflow. It may contain
