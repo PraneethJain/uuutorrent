@@ -553,23 +553,21 @@ For comparison, we consider an *Event-Driven Architecture (implemented within th
     - *Load Handling:* Resource usage (CPU, potentially RAM for processing data) increases directly in proportion to the number of active requests being processed. If many users trigger downloads simultaneously, multiple instances of the orchestration logic run concurrently (up to worker limits), potentially causing resource spikes (CPU for searching/parsing, qBit interaction; RAM for holding data). Since processing happens within the request cycle, there's no buffering effect like an event queue.
     - *Overall Impact:* Resource usage is tightly coupled to active user requests. The critical factors remain qBittorrent's activity and PostgreSQL load. ADR-001 (On-demand search) is still key to minimizing *idle* load. Adherence to NF7 under load depends on the efficiency of the sequential processing and the number of concurrent requests the OCI instance can handle without exceeding CPU/RAM limits.
 - *Trade-offs:* Simpler resource model (usage maps directly to requests). Less resilient to sudden, large bursts of requests compared to an event-driven approach with buffering, as it might lead to resource exhaustion or request timeouts if processing takes too long. No risk of unbounded queue memory growth.
-- *Placeholder for Quantitative Data:*
-    ```typst
-    // #figure(
-    //   image("resource_usage_direct_call_load.png", width: 80%),
-    //   caption: [Grafana dashboard showing CPU, RAM, Network I/O during simulated load test (Direct-Call).],
-    // )
-    // #figure(
-    //   table(
-    //     columns: (auto, auto, auto),
-    //     [*Resource*, *Peak Usage (High Load)*, *OCI Free Tier Limit (Approx)*],
-    //     [CPU (%)], [e.g., 80% (sustained under concurrent requests)], [Shared OCPU (Burstable)],
-    //     [RAM (GB)], [e.g., 0.7 GB], [1 GB (Typical AMD Free Tier)],
-    //     [Network Egress (GB/Month)], [Depends heavily on seeding], [10 TB],
-    //   ),
-    //   caption: [Peak resource usage compared to OCI Always Free Tier limits (Direct-Call).],
-    // )
-    ```
+
+#pagebreak()
+- *Visualization for different architectures:*
+    #figure(
+      image("grafana/grafana_node_exporter_monolithic.png", width: 80%),
+      caption: [Grafana dashboard showing CPU, RAM, Network I/O during simulated load test (Direct-Call).],
+    )
+    #figure(
+      image("grafana/grafana_pgexporter_monolithic.png", width: 80%),
+      caption: [Grafana dashboard for monolithic system database workload],
+    )
+    #figure(
+      image("grafana/grafana_pgexporter_event_driven.png", width: 80%),
+      caption: [Grafana dashboard for event driven system database workload],
+    )
 
 === Conceptual Comparison: Direct-Call vs. Event-Driven
 
@@ -580,60 +578,6 @@ For comparison, we consider an *Event-Driven Architecture (implemented within th
 - *Consistency:* Direct-Call makes transactional consistency easier to achieve within a single request. Event-Driven requires careful design (e.g., idempotency, retries, monitoring) to handle partial failures across worker stages.
 
 #pagebreak()
-
-// =========================================
-// Guidance on Obtaining Analysis Data/Plots
-// =========================================
-
-// = Guidance on Obtaining Analysis Data and Plots (for Direct-Call Architecture)
-
-// To populate the placeholders in Task 4's Architecture Analysis section for your *implemented direct-call architecture*, you will need to perform measurements and generate visualizations. Here's how:
-
-// == Measuring NF1 (Latency)
-
-// 1.  *Total API Request Time:*
-//     *   **Method 1 (Client-Side):** Modify `frontend/api_client.py` (specifically the function calling `/watchlist/download`) to record the timestamp just *before* the `httpx.post` call and the timestamp just *after* receiving the *final* response (the JSON message with success/error). Calculate the difference. Run this multiple times.
-//     *   **Method 2 (Server-Side Logging):** Use FastAPI middleware or detailed logging within the `/watchlist/download` endpoint handler (`backend/app/api/endpoints/watchlist.py`) to log the time the request is received and the time the final response object is returned. Use a unique request ID per request.
-//     *   **Tools:** Python's `time` module, FastAPI middleware, Python's `logging` module.
-
-// 2.  *Internal Step Breakdown (Server-Side Logging):*
-//     *   Within the `/watchlist/download` endpoint handler and the `torrent_orchestration_service.download_watchlist_episode` method:
-//         *   Log timestamps *before and after* critical calls:
-//             *   `await anilist_service.get_media_details(...)`
-//             *   `await nyaa_service.search(...)`
-//             *   The call to `loop.run_in_executor(None, qbt_svc.add_torrent_source, ...)`
-//             *   `await torrent_repo.link_torrent(...)`
-//     *   Include the unique request ID in all these log messages.
-//     *   Parse the logs to calculate the duration spent in each of these key internal steps for each request.
-//     *   **Tools:** Python's `logging` module, log parsing scripts (Python `re`, `datetime`).
-
-// 3.  *Generating Plots (Latency):*
-//     *   Collect the measured times (Total request time, breakdown durations) into a data format (e.g., CSV).
-//     *   Use libraries like `matplotlib` or `seaborn` in Python to generate:
-//         *   Histograms (`plt.hist()` or `sns.histplot()`) for the *Total API Request Time*.
-//         *   Box plots (`plt.boxplot()` or `sns.boxplot()`) for the Total API Request Time.
-//         *   Potentially a stacked bar chart or summary table showing the average time contribution of each internal step (Anilist, Nyaa, qBit, DB).
-//         *   Calculate averages, P95/P99 percentiles for the Total API Request Time using `numpy`.
-
-// == Measuring NF7 (Resource Constraints)
-
-// 1.  *Deployment:* Deploy the *full stack* (FastAPI App with direct-call logic, PostgreSQL, qBittorrent, Prometheus, Grafana, node_exporter, pgexporter) onto an OCI Always Free instance or similar. Configure Prometheus scraping targets.
-// 2.  *Load Generation:*
-//     *   Use `locust` or custom Python scripts (`httpx`).
-//     *   Simulate users logging in, fetching watchlists, and *concurrently* triggering downloads via `POST /watchlist/download`. Since this endpoint now blocks, the load tool needs to handle potentially long response times.
-//     *   Run tests for different scenarios: Idle, Low Load (few concurrent requests), High Load (many concurrent `/watchlist/download` requests).
-// 3.  *Data Collection & Visualization:*
-//     *   Monitor Grafana dashboards querying Prometheus during the load tests.
-//     *   Focus on OS metrics (`node_exporter`: CPU, RAM, Disk, Network), DB metrics (`pgexporter`), and API metrics (FastAPI `/metrics`: request rate, latency).
-//     *   Observe how CPU and RAM usage correlate with the number of active `/watchlist/download` requests being processed simultaneously.
-//     *   Take screenshots of relevant Grafana panels during peak load.
-//     *   Record peak and average values observed for CPU, RAM, etc.
-
-// 4.  *Generating Plots (Resources):*
-//     *   Use screenshots from Grafana showing time-series data for key resources under load.
-//     *   Create summary tables comparing observed peak/average usage against OCI Free Tier limits.
-
-// This guidance focuses on measuring the performance and resource usage of the architecture you *actually implemented*.
 
 // =========================================
 // Submission Guidelines
