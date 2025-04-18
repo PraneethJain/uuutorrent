@@ -48,7 +48,7 @@ etc. UUUTorrent only manages the download initiation and remote torrent state.
 local machine.
 
 - qBittorrent installed and running on the server, with its Web UI enabled. Note
-the IP/Port accessible to the backend, plus the Web UI username and password.
+the IP/Port accessible to the backend (allow port if UFW is active on Ubuntu/Debian Systems), plus the Web UI username and password.
 
 - An Anilist Account.
 

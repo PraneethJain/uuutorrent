@@ -562,25 +562,12 @@ For comparison, we consider an *Event-Driven Architecture (implemented within th
     - The user *directly perceives* this entire duration as the waiting time. While `asyncio` prevents the server from being fully blocked by external I/O (Anilist, Nyaa) and the executor handles the qBit sync library, the *request itself* is blocked until all steps complete.
     - Expected latency will be similar to the E2E time calculated for the event-driven version (e.g., *1.2s to 8.2s* typical estimate), but this entire duration is experienced by the user as wait time before getting confirmation/error.
 - *Trade-offs:* Simpler transactional logic – if any step fails, the endpoint can immediately return an error, and the system state is generally consistent (no torrent added if search failed, etc.). However, this comes at the cost of poorer *perceived* user responsiveness for long-running operations. The endpoint holds resources for the entire duration. Susceptible to timeouts if external services are very slow.
-- *Placeholder for Quantitative Data:*
-    ```typst
-    // #figure(
-    //   table(
-    //     columns: (auto, auto, auto),
-    //     [*Metric*, *Measurement*, *Result*],
-    //     [Total API Request Time (Avg/P95)], [Client/Server Logs], [e.g., 4.5s / 9.8s],
-    //     [ -> Anilist Call (Avg)], [Server Logs], [e.g., 1.2s],
-    //     [ -> Nyaa Search (Avg)], [Server Logs], [e.g., 1.8s],
-    //     [ -> qBit Add (Avg)], [Server Logs], [e.g., 0.4s],
-    //     [ -> DB Link (Avg)], [Server Logs], [e.g., 0.05s],
-    //   ),
-    //   caption: [Latency breakdown for `/watchlist/download` endpoint under simulated load.],
-    // )
-    // #figure(
-    //   image("latency_histogram_direct_call.png", width: 70%),
-    //   caption: [Histogram of Total API Request Times for `/watchlist/download`.],
-    // )
-    ```
+#pagebreak()
+- *Comparison of different architectures:*
+    #figure(
+      image("comparision.png", width: 70%),
+      caption: [Total API Request Times for `/watchlist/download`.],
+    )
 
 ==== NF7: Resource Constraints (OCI Always Free Tier)
 
