@@ -5,7 +5,7 @@ class TorrentInfo(BaseModel):
     hash: str
     name: str
     size: int  # bytes
-    progress: float  # 0.0 to 1.0
+    progress: float
     status: str
     num_seeds: int
     num_leechs: int
